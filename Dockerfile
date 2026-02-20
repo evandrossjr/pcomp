@@ -1,7 +1,7 @@
-LABEL authors="Evandro Sacramento"
 
 # Etapa 1: Compilação do projeto
 FROM maven:3.8.5-openjdk-17 AS build
+LABEL authors="Evandro Sacramento"
 COPY . .
 RUN mvn clean package -DskipTests
 
