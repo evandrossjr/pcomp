@@ -4,12 +4,11 @@ import java.math.BigDecimal;
 
 public record AlertaItemDTO(
         String chave,
-        String tipo, // FALTA, SOBRA, VALOR_DIVERGENTE, ITEM_NAO_PEDIDO
+        String descricao,
+        String statusQuantidade,   // OK | FALTA | SOBRA | ITEM_SEM_PEDIDO
+        String statusPreco,        // OK | PRECO_DIFERENTE | ""
         BigDecimal qtdPedido,
         BigDecimal qtdNf,
-        BigDecimal valorUnitPedido,
-        BigDecimal valorUnitNf,
         BigDecimal totalPedido,
-        BigDecimal totalNf,
-        String mensagem
+        BigDecimal totalNf
 ) {}

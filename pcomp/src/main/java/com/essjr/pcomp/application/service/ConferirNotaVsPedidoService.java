@@ -48,79 +48,69 @@ public class ConferirNotaVsPedidoService {
 
         List<AlertaItemDTO> alertas = new ArrayList<>();
 
-        // 1) Conferir itens do pedido contra a NF
+        // 1) Itens do pedido (existem no pedido)
         for (var entry : pedidoAgg.entrySet()) {
             String chave = entry.getKey();
             ItemDoc p = entry.getValue();
             ItemDoc n = nfAgg.get(chave);
 
+            BigDecimal qtdPedido = nz(p.quantidade());
+            BigDecimal totalPedido = nz(p.valorTotal());
+
+            // Se não existe na NF => FALTA (qtd NF = 0)
             if (n == null) {
                 alertas.add(new AlertaItemDTO(
-                        chave, "FALTA",
-                        nz(p.quantidade()), BigDecimal.ZERO,
-                        nz(p.valorUnitario()), BigDecimal.ZERO,
-                        nz(p.valorTotal()), BigDecimal.ZERO,
-                        "Item do pedido não encontrado na NF"
+                        chave,
+                        n.descricao(),
+                        "FALTA",
+                        "-",             // sem NF, não tem como comparar preço (mas você pode deixar OK)
+                        qtdPedido,
+                        BigDecimal.ZERO,
+                        totalPedido,
+                        BigDecimal.ZERO
                 ));
                 continue;
             }
 
-            BigDecimal qtdPedido = nz(p.quantidade());
             BigDecimal qtdNf = nz(n.quantidade());
+            BigDecimal totalNf = nz(n.valorTotal());
 
+            // Status Quantidade
+            String statusQtd = "OK";
             int cmpQtd = qtdNf.compareTo(qtdPedido);
-            if (cmpQtd < 0) {
-                alertas.add(new AlertaItemDTO(
-                        chave, "FALTA",
-                        qtdPedido, qtdNf,
-                        nz(p.valorUnitario()), nz(n.valorUnitario()),
-                        nz(p.valorTotal()), nz(n.valorTotal()),
-                        "Quantidade menor na NF (após agrupar)"
-                ));
-            } else if (cmpQtd > 0) {
-                alertas.add(new AlertaItemDTO(
-                        chave, "SOBRA",
-                        qtdPedido, qtdNf,
-                        nz(p.valorUnitario()), nz(n.valorUnitario()),
-                        nz(p.valorTotal()), nz(n.valorTotal()),
-                        "Quantidade maior na NF (após agrupar)"
-                ));
-            }
+            if (cmpQtd < 0) statusQtd = "FALTA";
+            else if (cmpQtd > 0) statusQtd = "SOBRA";
 
-            // 💡 Recomendado: comparar principalmente TOTAL (mais confiável em NF)
-            if (diferente(nz(p.valorTotal()), nz(n.valorTotal()), tol)) {
-                alertas.add(new AlertaItemDTO(
-                        chave, "VALOR_DIVERGENTE",
-                        qtdPedido, qtdNf,
-                        nz(p.valorUnitario()), nz(n.valorUnitario()),
-                        nz(p.valorTotal()), nz(n.valorTotal()),
-                        "Total do item divergente (após agrupar)"
-                ));
-            }
+            // Status Preço (você quer apenas OK ou PRECO_DIFERENTE)
+            String statusPreco = diferente(totalPedido, totalNf, tol) ? "PRECO_DIFERENTE" : "OK";
 
-            // Opcional: também alertar unitário médio divergente (informativo)
-            if (diferente(nz(p.valorUnitario()), nz(n.valorUnitario()), tol)) {
-                alertas.add(new AlertaItemDTO(
-                        chave, "VALOR_DIVERGENTE",
-                        qtdPedido, qtdNf,
-                        nz(p.valorUnitario()), nz(n.valorUnitario()),
-                        nz(p.valorTotal()), nz(n.valorTotal()),
-                        "Valor unitário médio divergente (após agrupar)"
-                ));
-            }
+            alertas.add(new AlertaItemDTO(
+                    chave,
+                    p.descricao(),
+                    statusQtd,
+                    statusPreco,
+                    qtdPedido,
+                    qtdNf,
+                    totalPedido,
+                    totalNf
+            ));
         }
 
-        // 2) Itens na NF que não existem no pedido
+// 2) Itens na NF que não estão no pedido => ITEM_SEM_PEDIDO (sem aviso de preço)
         for (var entry : nfAgg.entrySet()) {
             String chave = entry.getKey();
             if (!pedidoAgg.containsKey(chave)) {
                 ItemDoc n = entry.getValue();
+
                 alertas.add(new AlertaItemDTO(
-                        chave, "ITEM_NAO_PEDIDO",
-                        BigDecimal.ZERO, nz(n.quantidade()),
-                        BigDecimal.ZERO, nz(n.valorUnitario()),
-                        BigDecimal.ZERO, nz(n.valorTotal()),
-                        "Item existe na NF mas não existe no pedido (após agrupar)"
+                        chave,
+                        n.descricao(),   // 👈 descrição da NF
+                        "ITEM_SEM_PEDIDO",
+                        "",                   // sem status de preço (como você pediu)
+                        BigDecimal.ZERO,
+                        nz(n.quantidade()),
+                        BigDecimal.ZERO,
+                        nz(n.valorTotal())
                 ));
             }
         }

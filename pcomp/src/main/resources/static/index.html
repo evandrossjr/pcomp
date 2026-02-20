@@ -85,18 +85,19 @@
             html += "<p class='ok'>Nenhuma divergência encontrada.</p>";
         } else {
             html += "<table>";
-            html += "<tr><th>SKU</th><th>Tipo</th><th>Qtd Pedido</th><th>Qtd NF</th><th>Total Pedido</th><th>Total NF</th><th>Mensagem</th></tr>";
+            html += "<tr><th>Chave</th><th>Descrição</th><th>Qtd Status</th><th>Preço Status</th><th>Qtd Pedido</th><th>Qtd NF</th><th>Total Pedido</th><th>Total NF</th></tr>";
 
             data.alertas.forEach(a => {
-                html += "<tr>";
-                html += "<td>" + a.SKU + "</td>";
-                html += "<td>" + a.tipo + "</td>";
-                html += "<td>" + a.qtdPedido + "</td>";
-                html += "<td>" + a.qtdNf + "</td>";
-                html += "<td>" + a.totalPedido + "</td>";
-                html += "<td>" + a.totalNf + "</td>";
-                html += "<td>" + a.mensagem + "</td>";
-                html += "</tr>";
+              html += "<tr>";
+              html += "<td>" + a.chave + "</td>";
+              html += "<td>" + a.descricao + "</td>";
+              html += "<td>" + a.statusQuantidade + "</td>";
+              html += "<td>" + (a.statusPreco || "") + "</td>";
+              html += "<td>" + a.qtdPedido + "</td>";
+              html += "<td>" + a.qtdNf + "</td>";
+              html += "<td>" + a.totalPedido + "</td>";
+              html += "<td>" + a.totalNf + "</td>";
+              html += "</tr>";
             });
 
             html += "</table>";
