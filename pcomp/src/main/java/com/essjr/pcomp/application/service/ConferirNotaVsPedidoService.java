@@ -61,7 +61,7 @@ public class ConferirNotaVsPedidoService {
             if (n == null) {
                 alertas.add(new AlertaItemDTO(
                         chave,
-                        n.descricao(),
+                        p.descricao(),
                         "FALTA",
                         "-",             // sem NF, não tem como comparar preço (mas você pode deixar OK)
                         qtdPedido,
