@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Conferência Pedido x NF</title>
+    <link rel="icon" href="data:,">
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        textarea { width: 100%; height: 200px; font-family: monospace; }
+        button { padding: 10px 20px; margin-top: 10px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+        th, td { border: 1px solid #ccc; padding: 8px; }
+        th { background: #f4f4f4; }
+        .ok { color: green; font-weight: bold; }
+        .alerta { color: red; font-weight: bold; }
+        .container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    </style>
+</head>
+<body>
+
+<h2>Conferência Pedido x NF</h2>
+
+<label>Tolerância (ex: 0.05)</label>
+<input type="number" id="tolerancia" step="0.01" value="0.00"/>
+
+<div class="container">
+    <div>
+        <h3>JSON Pedido</h3>
+        <textarea id="pedidoJson"></textarea>
+    </div>
+
+    <div>
+        <h3>JSON NF</h3>
+        <textarea id="nfJson"></textarea>
+    </div>
+</div>
+
+<button onclick="analisar()">Analisar</button>
+
+<div id="resultado"></div>
+
+<script>
+    async function analisar() {
+
+        const pedidoText = document.getElementById("pedidoJson").value;
+        const nfText = document.getElementById("nfJson").value;
+        const tolerancia = parseFloat(document.getElementById("tolerancia").value) || 0;
+
+        try {
+            const response = await fetch("/api/conferencia/analisar", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    pedidoJson: JSON.parse(pedidoText),
+                    nfJson: JSON.parse(nfText),
+                    toleranciaValor: tolerancia
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                document.getElementById("resultado").innerHTML =
+                    "<p class='alerta'>Erro: " + data.mensagem + "</p>";
+                return;
+            }
+
+            renderResultado(data);
+
+        } catch (e) {
+            document.getElementById("resultado").innerHTML =
+                "<p class='alerta'>Erro ao processar JSON</p>";
+        }
+    }
+
+    function renderResultado(data) {
+
+        let html = "";
+
+        html += "<p>Status: <span class='" + (data.status === "OK" ? "ok" : "alerta") + "'>" + data.status + "</span></p>";
+
+        html += "<p>Pedido: " + data.pedidoId + " | NF: " + data.nfId + "</p>";
+
+        if (!data.alertas || data.alertas.length === 0) {
+            html += "<p class='ok'>Nenhuma divergência encontrada.</p>";
+        } else {
+            html += "<table>";
+            html += "<tr><th>SKU</th><th>Tipo</th><th>Qtd Pedido</th><th>Qtd NF</th><th>Total Pedido</th><th>Total NF</th><th>Mensagem</th></tr>";
+
+            data.alertas.forEach(a => {
+                html += "<tr>";
+                html += "<td>" + a.SKU + "</td>";
+                html += "<td>" + a.tipo + "</td>";
+                html += "<td>" + a.qtdPedido + "</td>";
+                html += "<td>" + a.qtdNf + "</td>";
+                html += "<td>" + a.totalPedido + "</td>";
+                html += "<td>" + a.totalNf + "</td>";
+                html += "<td>" + a.mensagem + "</td>";
+                html += "</tr>";
+            });
+
+            html += "</table>";
+        }
+
+        document.getElementById("resultado").innerHTML = html;
+    }
+</script>
+
+</body>
+</html>
