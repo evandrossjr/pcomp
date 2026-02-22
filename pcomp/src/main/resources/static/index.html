@@ -81,11 +81,7 @@
 
         html += "<p>Pedido: " + data.pedidoId + " | NF: " + data.nfId + "</p>";
 
-        html += "<p><b>Produtos (únicos):</b> Pedido = " + data.produtosPedido + " | NF = " + data.produtosNf + "</p>";
-
-        if (data.linhasPedido !== undefined) {
-          html += "<p><b>Linhas (originais):</b> Pedido = " + data.linhasPedido + " | NF = " + data.linhasNf + "</p>";
-        }
+        html += "<p><b>Produtos (únicos):</b> Pedido = " + data.itensPedido + " | NF = " + data.itensNf + "</p>";
 
         if (!data.alertas || data.alertas.length === 0) {
             html += "<p class='ok'>Nenhuma divergência encontrada.</p>";
