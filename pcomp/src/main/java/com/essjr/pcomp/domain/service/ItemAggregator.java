@@ -13,7 +13,7 @@ public class ItemAggregator {
         Map<String, MutableAgg> acc = new LinkedHashMap<>();
 
         for (ItemDoc i : itens) {
-            String chave = chaveComparacao(i);
+            String chave = chaveProduto(i);
 
             MutableAgg m = acc.computeIfAbsent(chave, k -> new MutableAgg(i.sku(), i.ean(), i.descricao()));
             m.qtd = m.qtd.add(nz(i.quantidade()));
@@ -44,13 +44,16 @@ public class ItemAggregator {
         return out;
     }
 
-    public static String chaveComparacao(ItemDoc i) {
-        if (i.sku() != null && !i.sku().isBlank()) {
-            String skuNormalizado = normalizarCodigo(i.sku());
-            return "SKU:" + skuNormalizado;
-        }        if (i.ean() != null && !i.ean().isBlank()) return "EAN:" + i.ean().trim();
-        String desc = (i.descricao() == null) ? "" : i.descricao().trim().toUpperCase();
-        return "DESC:" + desc;
+    public static String chaveProduto(ItemDoc i) {
+        if (i.ean() != null && !i.ean().isBlank()) return "EAN:" + i.ean().trim(); // não normaliza EAN
+        if (i.sku() != null && !i.sku().isBlank()) return "SKU:" + normalizarSku(i.sku());
+        return "DESC:" + ((i.descricao() == null) ? "" : i.descricao().trim().toUpperCase());
+    }
+
+    private static String normalizarSku(String sku) {
+        String s = sku.trim();
+        // remove zeros à esquerda (somente para SKU)
+        return s.replaceFirst("^0+(?!$)", "");
     }
 
     private static BigDecimal nz(BigDecimal v) {

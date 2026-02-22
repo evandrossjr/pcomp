@@ -81,18 +81,27 @@
 
         html += "<p>Pedido: " + data.pedidoId + " | NF: " + data.nfId + "</p>";
 
+        html += "<p><b>Produtos (únicos):</b> Pedido = " + data.produtosPedido + " | NF = " + data.produtosNf + "</p>";
+
+        if (data.linhasPedido !== undefined) {
+          html += "<p><b>Linhas (originais):</b> Pedido = " + data.linhasPedido + " | NF = " + data.linhasNf + "</p>";
+        }
+
         if (!data.alertas || data.alertas.length === 0) {
             html += "<p class='ok'>Nenhuma divergência encontrada.</p>";
         } else {
             html += "<table>";
-            html += "<tr><th>Chave</th><th>Descrição</th><th>Qtd Status</th><th>Preço Status</th><th>Qtd Pedido</th><th>Qtd NF</th><th>Total Pedido</th><th>Total NF</th></tr>";
+            html += "<tr><th>EAN</th><th>Descrição</th><th>SKU Pedido</th><th>SKU NF</th><th>Qtd Status</th><th>Preço Status</th><th>Cadastro</th><th>Qtd Pedido</th><th>Qtd NF</th><th>Total Pedido</th><th>Total NF</th></tr>";
 
             data.alertas.forEach(a => {
               html += "<tr>";
               html += "<td>" + a.chave + "</td>";
               html += "<td>" + a.descricao + "</td>";
+              html += "<td>" + a.skuPedido + "</td>";
+              html += "<td>" + a.skuNf + "</td>";
               html += "<td>" + a.statusQuantidade + "</td>";
               html += "<td>" + (a.statusPreco || "") + "</td>";
+              html += "<td>" + a.avisoCadastro + "</td>";
               html += "<td>" + a.qtdPedido + "</td>";
               html += "<td>" + a.qtdNf + "</td>";
               html += "<td>" + a.totalPedido + "</td>";

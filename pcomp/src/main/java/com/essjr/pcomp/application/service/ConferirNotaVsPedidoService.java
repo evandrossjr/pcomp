@@ -1,5 +1,7 @@
 package com.essjr.pcomp.application.service;
 
+
+import org.springframework.stereotype.Service;
 import com.essjr.pcomp.api.dto.response.AlertaItemDTO;
 import com.essjr.pcomp.api.dto.response.RelatorioConferenciaDTO;
 import com.essjr.pcomp.application.infrastructure.parser.OmieNfParser;
@@ -7,16 +9,11 @@ import com.essjr.pcomp.application.infrastructure.parser.OmiePedidoParser;
 import com.essjr.pcomp.domain.model.DocumentoCompra;
 import com.essjr.pcomp.domain.model.ItemDoc;
 import com.essjr.pcomp.domain.service.ItemAggregator;
-
-import org.springframework.stereotype.Service;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.JsonNode;
-
+import java.util.*;
 
 @Service
 public class ConferirNotaVsPedidoService {
@@ -31,39 +28,49 @@ public class ConferirNotaVsPedidoService {
         this.nfParser = nfParser;
     }
 
-    public RelatorioConferenciaDTO conferir(
-            JsonNode pedidoJson,
-            JsonNode nfJson,
-            BigDecimal toleranciaValor) {
+    public RelatorioConferenciaDTO conferir(JsonNode pedidoJson, JsonNode nfJson, BigDecimal toleranciaValor) {
 
         DocumentoCompra pedido = pedidoParser.parse(pedidoJson);
         DocumentoCompra nf = nfParser.parse(nfJson);
 
         BigDecimal tol = (toleranciaValor == null) ? BigDecimal.ZERO : toleranciaValor;
 
+        // mapas para avisos de cadastro
+        var pedidoEanSkus = mapEanParaSkus(pedido.itens());
+        var nfEanSkus     = mapEanParaSkus(nf.itens());
+        var pedidoSkuEans = mapSkuParaEans(pedido.itens());
+        var nfSkuEans     = mapSkuParaEans(nf.itens());
 
-        // ✅ AGREGA (soma duplicados)
+        // agrega (1 linha por produto) -> GARANTA que ItemAggregator usa EAN como chave primeiro
         Map<String, ItemDoc> pedidoAgg = ItemAggregator.agruparPorChave(pedido.itens());
-        Map<String, ItemDoc> nfAgg = ItemAggregator.agruparPorChave(nf.itens());
+        Map<String, ItemDoc> nfAgg     = ItemAggregator.agruparPorChave(nf.itens());
 
-        List<AlertaItemDTO> alertas = new ArrayList<>();
+        List<AlertaItemDTO> linhas = new ArrayList<>();
 
-        // 1) Itens do pedido (existem no pedido)
+        // 1) produtos do pedido
         for (var entry : pedidoAgg.entrySet()) {
             String chave = entry.getKey();
             ItemDoc p = entry.getValue();
             ItemDoc n = nfAgg.get(chave);
 
+            String aviso = avisoCadastroParaChave(chave, pedidoEanSkus, nfEanSkus, pedidoSkuEans, nfSkuEans);
+
+            String skuPedido = skuPrincipalPedido(chave, pedidoEanSkus);
+            String skuNf = skuPrincipalNf(chave, nfEanSkus);
+
             BigDecimal qtdPedido = nz(p.quantidade());
             BigDecimal totalPedido = nz(p.valorTotal());
 
-            // Se não existe na NF => FALTA (qtd NF = 0)
+            // não existe na NF => FALTA
             if (n == null) {
-                alertas.add(new AlertaItemDTO(
+                linhas.add(new AlertaItemDTO(
                         chave,
-                        p.descricao(),
+                        descSafe(p.descricao()),
+                        skuPedido,
+                        "-",                 // skuNf
                         "FALTA",
-                        "-",             // sem NF, não tem como comparar preço (mas você pode deixar OK)
+                        "-",                 // sem preço
+                        aviso,
                         qtdPedido,
                         BigDecimal.ZERO,
                         totalPedido,
@@ -75,20 +82,23 @@ public class ConferirNotaVsPedidoService {
             BigDecimal qtdNf = nz(n.quantidade());
             BigDecimal totalNf = nz(n.valorTotal());
 
-            // Status Quantidade
+            // status qtd
             String statusQtd = "OK";
-            int cmpQtd = qtdNf.compareTo(qtdPedido);
-            if (cmpQtd < 0) statusQtd = "FALTA";
-            else if (cmpQtd > 0) statusQtd = "SOBRA";
+            int cmp = qtdNf.compareTo(qtdPedido);
+            if (cmp < 0) statusQtd = "FALTA";
+            else if (cmp > 0) statusQtd = "SOBRA";
 
-            // Status Preço (você quer apenas OK ou PRECO_DIFERENTE)
+            // status preço (só OK / PRECO_DIFERENTE)
             String statusPreco = diferente(totalPedido, totalNf, tol) ? "PRECO_DIFERENTE" : "OK";
 
-            alertas.add(new AlertaItemDTO(
+            linhas.add(new AlertaItemDTO(
                     chave,
-                    p.descricao(),
+                    descSafe(p.descricao()),   // prefiro descrição do pedido
+                    skuPedido,
+                    skuNf,
                     statusQtd,
                     statusPreco,
+                    aviso,
                     qtdPedido,
                     qtdNf,
                     totalPedido,
@@ -96,35 +106,130 @@ public class ConferirNotaVsPedidoService {
             ));
         }
 
-// 2) Itens na NF que não estão no pedido => ITEM_SEM_PEDIDO (sem aviso de preço)
+        // 2) itens da NF sem pedido
         for (var entry : nfAgg.entrySet()) {
             String chave = entry.getKey();
-            if (!pedidoAgg.containsKey(chave)) {
-                ItemDoc n = entry.getValue();
+            if (pedidoAgg.containsKey(chave)) continue;
 
-                alertas.add(new AlertaItemDTO(
-                        chave,
-                        n.descricao(),   // 👈 descrição da NF
-                        "ITEM_SEM_PEDIDO",
-                        "",                   // sem status de preço (como você pediu)
-                        BigDecimal.ZERO,
-                        nz(n.quantidade()),
-                        BigDecimal.ZERO,
-                        nz(n.valorTotal())
-                ));
-            }
+            ItemDoc n = entry.getValue();
+
+            String skuNf = skuPrincipalNf(chave, nfEanSkus);
+
+            linhas.add(new AlertaItemDTO(
+                    chave,
+                    descSafe(n.descricao()),
+                    "-",                      // skuPedido
+                    skuNf,
+                    "ITEM_SEM_PEDIDO",
+                    "",                       // sem preço
+                    "OK",                     // você pediu sem aviso de preço; aqui fica OK
+                    BigDecimal.ZERO,
+                    nz(n.quantidade()),
+                    BigDecimal.ZERO,
+                    nz(n.valorTotal())
+            ));
         }
 
-        String status = alertas.isEmpty() ? "OK" : "ALERTA";
+        String status = linhas.isEmpty() ? "OK" : "ALERTA";
         return new RelatorioConferenciaDTO(
-                pedido.id(), nf.id(), status,
-                pedidoAgg.size(), nfAgg.size(),   // agora conta itens após agrupar
-                alertas
+                pedido.id(),
+                nf.id(),
+                status,
+                pedidoAgg.size(),
+                nfAgg.size(),
+                linhas
         );
     }
 
+    // ---------- helpers cadastro / sku-ean ----------
+
+    private Map<String, Set<String>> mapEanParaSkus(List<ItemDoc> itens) {
+        Map<String, Set<String>> m = new HashMap<>();
+        for (ItemDoc i : itens) {
+            String ean = (i.ean() == null || i.ean().isBlank()) ? null : i.ean().trim();
+            String sku = (i.sku() == null || i.sku().isBlank()) ? null : normalizarSku(i.sku());
+            if (ean == null || sku == null) continue;
+            m.computeIfAbsent(ean, k -> new HashSet<>()).add(sku);
+        }
+        return m;
+    }
+
+    private Map<String, Set<String>> mapSkuParaEans(List<ItemDoc> itens) {
+        Map<String, Set<String>> m = new HashMap<>();
+        for (ItemDoc i : itens) {
+            String sku = (i.sku() == null || i.sku().isBlank()) ? null : normalizarSku(i.sku());
+            String ean = (i.ean() == null || i.ean().isBlank()) ? null : i.ean().trim();
+            if (ean == null || sku == null) continue;
+            m.computeIfAbsent(sku, k -> new HashSet<>()).add(ean);
+        }
+        return m;
+    }
+
+    private String avisoCadastroParaChave(String chaveProduto,
+                                          Map<String, Set<String>> pedidoEanSkus,
+                                          Map<String, Set<String>> nfEanSkus,
+                                          Map<String, Set<String>> pedidoSkuEans,
+                                          Map<String, Set<String>> nfSkuEans) {
+
+        if (chaveProduto.startsWith("EAN:")) {
+            String ean = chaveProduto.substring(4);
+            Set<String> skusPedido = pedidoEanSkus.getOrDefault(ean, Set.of());
+            Set<String> skusNf = nfEanSkus.getOrDefault(ean, Set.of());
+
+            Set<String> uniao = new HashSet<>(skusPedido);
+            uniao.addAll(skusNf);
+
+            return (uniao.size() > 1) ? "CODIGO_DIFERENTE_MESMO_EAN" : "OK";
+        }
+
+        if (chaveProduto.startsWith("SKU:")) {
+            String sku = chaveProduto.substring(4);
+            Set<String> eansPedido = pedidoSkuEans.getOrDefault(sku, Set.of());
+            Set<String> eansNf = nfSkuEans.getOrDefault(sku, Set.of());
+
+            Set<String> uniao = new HashSet<>(eansPedido);
+            uniao.addAll(eansNf);
+
+            return (uniao.size() > 1) ? "EAN_DIFERENTE_MESMO_CODIGO" : "OK";
+        }
+
+        return "OK";
+    }
+
+    private String skuPrincipalPedido(String chaveProduto, Map<String, Set<String>> pedidoEanSkus) {
+        if (chaveProduto.startsWith("EAN:")) {
+            String ean = chaveProduto.substring(4);
+            return escolherUm(pedidoEanSkus.get(ean));
+        }
+        if (chaveProduto.startsWith("SKU:")) return chaveProduto.substring(4);
+        return "-";
+    }
+
+    private String skuPrincipalNf(String chaveProduto, Map<String, Set<String>> nfEanSkus) {
+        if (chaveProduto.startsWith("EAN:")) {
+            String ean = chaveProduto.substring(4);
+            return escolherUm(nfEanSkus.get(ean));
+        }
+        if (chaveProduto.startsWith("SKU:")) return chaveProduto.substring(4);
+        return "-";
+    }
+
+    private String escolherUm(Set<String> set) {
+        if (set == null || set.isEmpty()) return "-";
+        return set.stream().sorted().findFirst().orElse("-");
+    }
+
+    private String normalizarSku(String sku) {
+        String s = sku.trim();
+        return s.replaceFirst("^0+(?!$)", "");
+    }
+
+    private String descSafe(String s) {
+        return (s == null || s.isBlank()) ? "-" : s;
+    }
+
     private boolean diferente(BigDecimal a, BigDecimal b, BigDecimal tol) {
-        return a.subtract(b).abs().compareTo(tol) > 0;
+        return nz(a).subtract(nz(b)).abs().compareTo(tol) > 0;
     }
 
     private BigDecimal nz(BigDecimal v) {
