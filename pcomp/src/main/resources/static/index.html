@@ -188,6 +188,8 @@
     </div>
 
     <button onclick="analisar()">Analisar</button>
+    <button class="btn copy" type="button" onclick="copiarTabela()">Copiar tabela</button>
+
 
     <div id="resultado"></div>
 </div>
@@ -282,6 +284,42 @@
                 "<p class='alerta'>Erro ao processar JSON</p>";
         }
     }
+
+     async function copiarTabela() {
+        const table = document.querySelector("#resultado table");
+        if (!table) {
+          alert("Nenhuma tabela para copiar.");
+          return;
+        }
+
+        const rows = Array.from(table.querySelectorAll("tr"));
+        const tsv = rows.map(row => {
+          const cells = Array.from(row.querySelectorAll("th,td"));
+          return cells.map(c => (c.innerText || "").replace(/\t/g, " ").replace(/\n/g, " ")).join("\t");
+        }).join("\n");
+
+        // tenta clipboard moderno
+        try {
+          if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(tsv);
+            alert("Tabela copiada! Agora é só colar no Excel.");
+            return;
+          }
+        } catch (e) {
+          // cai pro fallback abaixo
+        }
+
+        // fallback (funciona até sem https): cria textarea temporário
+        const ta = document.createElement("textarea");
+        ta.value = tsv;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+
+        alert("Tabela copiada! Agora é só colar no Excel.");
+    }
+
 
     function renderResultado(data) {
         let html = "";

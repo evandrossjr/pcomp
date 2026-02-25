@@ -242,7 +242,7 @@
   function render(data) {
     let html = "";
     html += `<p><b>Arquivos:</b> ${data.arquivosRecebidos} | <b>Linhas:</b> ${data.linhasGeradas}</p>`;
-    html += `<button type="button" onclick="copiarTabela()">Copiar tabela</button>`;
+    // html += `<button type="button" onclick="copiarTabela()">Copiar tabela</button>`;
 
     if (!data.linhas || data.linhas.length === 0) {
       html += "<p>Nenhuma linha encontrada.</p>";
