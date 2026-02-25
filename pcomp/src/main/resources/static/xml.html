@@ -66,6 +66,7 @@
   function render(data) {
     let html = "";
     html += `<p><b>Arquivos:</b> ${data.arquivosRecebidos} | <b>Linhas:</b> ${data.linhasGeradas}</p>`;
+    html += `<button type="button" onclick="copiarTabela()">Copiar tabela</button>`;
 
     if (!data.linhas || data.linhas.length === 0) {
       html += "<p>Nenhuma linha encontrada.</p>";
@@ -81,7 +82,7 @@
       html += "<td>" + esc(l.ean) + "</td>";
       html += "<td>" + esc(l.skuFornecedor) + "</td>";
       html += "<td>" + esc(l.descricao) + "</td>";
-      html += "<td>" + (l.valorUnitario ?? "") + "</td>";
+      html += "<td>" + formatBRNumber(l.valorUnitario) + "</td>";
       html += "<td>" + esc(l.dataEmissao) + "</td>";
       html += "<td>" + esc(l.fornecedorNome) + "</td>";
       html += "<td>" + esc(l.arquivo) + "</td>";
@@ -90,6 +91,49 @@
 
     html += "</table>";
     document.getElementById("resultado").innerHTML = html;
+  }
+
+  function formatBRNumber(v) {
+    if (v === null || v === undefined || v === "") return "";
+    // aceita número e string
+    const n = Number(String(v).replace(",", "."));
+    if (Number.isNaN(n)) return esc(String(v));
+    return n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 6 });
+  }
+
+  async function copiarTabela() {
+    const table = document.querySelector("#resultado table");
+    if (!table) {
+      alert("Nenhuma tabela para copiar.");
+      return;
+    }
+
+    const rows = Array.from(table.querySelectorAll("tr"));
+    const tsv = rows.map(row => {
+      const cells = Array.from(row.querySelectorAll("th,td"));
+      return cells.map(c => (c.innerText || "").replace(/\t/g, " ").replace(/\n/g, " ")).join("\t");
+    }).join("\n");
+
+    // tenta clipboard moderno
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(tsv);
+        alert("Tabela copiada! Agora é só colar no Excel.");
+        return;
+      }
+    } catch (e) {
+      // cai pro fallback abaixo
+    }
+
+    // fallback (funciona até sem https): cria textarea temporário
+    const ta = document.createElement("textarea");
+    ta.value = tsv;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+
+    alert("Tabela copiada! Agora é só colar no Excel.");
   }
 
   function esc(s) {
