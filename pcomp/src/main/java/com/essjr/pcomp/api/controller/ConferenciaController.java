@@ -19,6 +19,6 @@ public class ConferenciaController {
 
     @PostMapping("/analisar")
     public RelatorioConferenciaDTO analisar(@Valid @RequestBody ConferenciaJsonRequest req) {
-        return service.conferir(req.pedidoJson(), req.nfJson(), req.toleranciaValor());
+        return service.conferir(req.pedidoJson(), req.nfsJson(), req.toleranciaValor());
     }
 }

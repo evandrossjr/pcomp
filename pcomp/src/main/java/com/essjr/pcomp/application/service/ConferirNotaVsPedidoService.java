@@ -28,22 +28,29 @@ public class ConferirNotaVsPedidoService {
         this.nfParser = nfParser;
     }
 
-    public RelatorioConferenciaDTO conferir(JsonNode pedidoJson, JsonNode nfJson, BigDecimal toleranciaValor) {
+    public RelatorioConferenciaDTO conferir(JsonNode pedidoJson,  List<JsonNode> nfsJson, BigDecimal toleranciaValor) {
+
+        if (nfsJson == null || nfsJson.isEmpty()) {
+            throw new IllegalArgumentException("É obrigatório informar pelo menos uma NF.");
+        }
 
         DocumentoCompra pedido = pedidoParser.parse(pedidoJson);
-        DocumentoCompra nf = nfParser.parse(nfJson);
-
+        List<ItemDoc> itensNfTotal = new ArrayList<>();
+        for (JsonNode nfJson : nfsJson) {
+            DocumentoCompra nf = nfParser.parse(nfJson);
+            itensNfTotal.addAll(nf.itens());
+        }
         BigDecimal tol = (toleranciaValor == null) ? BigDecimal.ZERO : toleranciaValor;
 
         // mapas para avisos de cadastro
         var pedidoEanSkus = mapEanParaSkus(pedido.itens());
-        var nfEanSkus     = mapEanParaSkus(nf.itens());
+        var nfEanSkus     = mapEanParaSkus(itensNfTotal);
         var pedidoSkuEans = mapSkuParaEans(pedido.itens());
-        var nfSkuEans     = mapSkuParaEans(nf.itens());
+        var nfSkuEans     = mapSkuParaEans(itensNfTotal);
 
         // agrega (1 linha por produto) -> GARANTA que ItemAggregator usa EAN como chave primeiro
+        Map<String, ItemDoc> nfAgg = ItemAggregator.agruparPorChave(itensNfTotal);
         Map<String, ItemDoc> pedidoAgg = ItemAggregator.agruparPorChave(pedido.itens());
-        Map<String, ItemDoc> nfAgg     = ItemAggregator.agruparPorChave(nf.itens());
 
         List<AlertaItemDTO> linhas = new ArrayList<>();
 
@@ -130,10 +137,20 @@ public class ConferirNotaVsPedidoService {
             ));
         }
 
+        List<String> idsNf = new ArrayList<>();
+
+        for (JsonNode nfJson : nfsJson) {
+            DocumentoCompra nf = nfParser.parse(nfJson);
+            itensNfTotal.addAll(nf.itens());
+            idsNf.add(nf.id());
+        }
+
+        String nfIdConcat = String.join(", ", idsNf);
+
         String status = linhas.isEmpty() ? "OK" : "ALERTA";
         return new RelatorioConferenciaDTO(
                 pedido.id(),
-                nf.id(),
+                nfIdConcat,
                 status,
                 pedidoAgg.size(),
                 nfAgg.size(),

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Extrator XML (NF-e)</title>
+  <link rel="icon" href="data:,">
+  <style>
+    body { font-family: Arial; margin: 20px; }
+    button { padding: 10px 16px; cursor: pointer; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; }
+    th { background: #f4f4f4; }
+    .alerta { color: red; font-weight: bold; }
+    .topbar { display:flex; justify-content: space-between; align-items:center; }
+    input[type="file"] { margin-top: 8px; }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <h2>Extrator XML (NF-e)</h2>
+  <a href="/">Voltar para Conferência</a>
+</div>
+
+<p>Envie até 20 XMLs. A saída será 1 linha por item da NF.</p>
+
+<input type="file" id="files" multiple accept=".xml" />
+<br><br>
+<button onclick="enviar()">Extrair</button>
+
+<div id="resultado"></div>
+
+<script>
+  async function enviar() {
+    const input = document.getElementById("files");
+    if (!input.files || input.files.length === 0) {
+      alert("Selecione pelo menos 1 XML.");
+      return;
+    }
+    if (input.files.length > 20) {
+      alert("Máximo de 20 arquivos.");
+      return;
+    }
+
+    const fd = new FormData();
+    for (const f of input.files) fd.append("files", f);
+
+    const resEl = document.getElementById("resultado");
+    resEl.innerHTML = "Processando...";
+
+    try {
+      const resp = await fetch("/api/xml/extrair", { method: "POST", body: fd });
+      const data = await resp.json();
+
+      if (!resp.ok) {
+        resEl.innerHTML = "<p class='alerta'>Erro: " + (data.mensagem || "Falha no processamento") + "</p>";
+        return;
+      }
+
+      render(data);
+    } catch (e) {
+      resEl.innerHTML = "<p class='alerta'>Erro inesperado.</p>";
+    }
+  }
+
+  function render(data) {
+    let html = "";
+    html += `<p><b>Arquivos:</b> ${data.arquivosRecebidos} | <b>Linhas:</b> ${data.linhasGeradas}</p>`;
+
+    if (!data.linhas || data.linhas.length === 0) {
+      html += "<p>Nenhuma linha encontrada.</p>";
+      document.getElementById("resultado").innerHTML = html;
+      return;
+    }
+
+    html += "<table>";
+    html += "<tr><th>EAN</th><th>SKU Fornecedor</th><th>Descrição</th><th>Valor Unit</th><th>Emissão</th><th>Fornecedor</th><th>Arquivo</th></tr>";
+
+    data.linhas.forEach(l => {
+      html += "<tr>";
+      html += "<td>" + esc(l.ean) + "</td>";
+      html += "<td>" + esc(l.skuFornecedor) + "</td>";
+      html += "<td>" + esc(l.descricao) + "</td>";
+      html += "<td>" + (l.valorUnitario ?? "") + "</td>";
+      html += "<td>" + esc(l.dataEmissao) + "</td>";
+      html += "<td>" + esc(l.fornecedorNome) + "</td>";
+      html += "<td>" + esc(l.arquivo) + "</td>";
+      html += "</tr>";
+    });
+
+    html += "</table>";
+    document.getElementById("resultado").innerHTML = html;
+  }
+
+  function esc(s) {
+    if (s == null) return "";
+    return String(s).replace(/[&<>"']/g, m => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+    }[m]));
+  }
+</script>
+</body>
+</html>
