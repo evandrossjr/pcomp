@@ -321,6 +321,34 @@
     }
 
 
+    function brl(v){
+      if (v === null || v === undefined || v === "") return "";
+      const n = Number(String(v).replace(",", "."));
+      if (Number.isNaN(n)) return String(v);
+      return n.toLocaleString("pt-BR", { style:"currency", currency:"BRL" });
+    }
+
+    function num(v){
+      if (v === null || v === undefined || v === "") return "";
+      const n = Number(String(v).replace(",", "."));
+      if (Number.isNaN(n)) return String(v);
+      return n.toLocaleString("pt-BR");
+    }
+
+    function brl(v){
+      if (v === null || v === undefined || v === "") return "";
+      const n = Number(String(v).replace(",", "."));
+      if (Number.isNaN(n)) return String(v);
+      return n.toLocaleString("pt-BR", { style:"currency", currency:"BRL" });
+    }
+
+    function num(v){
+      if (v === null || v === undefined || v === "") return "";
+      const n = Number(String(v).replace(",", "."));
+      if (Number.isNaN(n)) return String(v);
+      return n.toLocaleString("pt-BR");
+    }
+
     function renderResultado(data) {
         let html = "";
 
@@ -332,7 +360,13 @@
             html += "<p class='ok'>Nenhuma divergência encontrada.</p>";
         } else {
             html += "<table>";
-            html += "<tr><th>Chave</th><th>Descrição</th><th>SKU Pedido</th><th>SKU NF</th><th>Qtd Status</th><th>Preço Status</th><th>Cadastro</th><th>Qtd Pedido</th><th>Qtd NF</th><th>Total Pedido</th><th>Total NF</th></tr>";
+            html += "<tr>"
+             + "<th>Chave</th><th>Descrição</th><th>SKU Pedido</th><th>SKU NF</th>"
+             + "<th>Qtd</th><th>Status Preço</th><th>Status Cadastro</th>"
+             + "<th>Qtd Pedido</th><th>Valor Unit Pedido</th>"
+             + "<th>Qtd NF</th><th>Valor Unit NF</th>"
+             + "<th>Total Pedido</th><th>Total NF</th>"
+             + "</tr>";
 
             data.alertas.forEach(a => {
               html += "<tr>";
@@ -340,13 +374,31 @@
               html += "<td>" + (a.descricao || "") + "</td>";
               html += "<td>" + (a.skuPedido || "-") + "</td>";
               html += "<td>" + (a.skuNf || "-") + "</td>";
-              html += "<td>" + (a.statusQuantidade || "") + "</td>";
-              html += "<td>" + (a.statusPreco || "") + "</td>";
+
+              // Qtd (mostrar pendente/a mais)
+              // qtdDiferenca > 0 => pendente; < 0 => a mais
+              let qtdTxt = "-";
+              if (a.qtdDiferenca !== null && a.qtdDiferenca !== undefined) {
+                const q = Number(a.qtdDiferenca);
+                if (q > 0) qtdTxt = "Pendente: " + num(q);
+                else if (q < 0) qtdTxt = "A mais: " + num(Math.abs(q));
+                else qtdTxt = "OK";
+              }
+              html += "<td>" + (a.statusQuantidade || "") + " • " + qtdTxt + "</td>";
+
+              // Status preço: vem texto, mas trocar o número por BRL
+              html += "<td>" + formatPrecoTexto(a.statusPrecoTexto) + "</td>";
+
               html += "<td>" + (a.avisoCadastro || "") + "</td>";
-              html += "<td>" + (a.qtdPedido ?? "") + "</td>";
-              html += "<td>" + (a.qtdNf ?? "") + "</td>";
-              html += "<td>" + (a.totalPedido ?? "") + "</td>";
-              html += "<td>" + (a.totalNf ?? "") + "</td>";
+
+              html += "<td>" + num(a.qtdPedido) + "</td>";
+              html += "<td>" + brl(a.valorUnitPedido) + "</td>";
+
+              html += "<td>" + num(a.qtdNf) + "</td>";
+              html += "<td>" + brl(a.valorUnitNf) + "</td>";
+
+              html += "<td>" + brl(a.totalPedido) + "</td>";
+              html += "<td>" + brl(a.totalNf) + "</td>";
               html += "</tr>";
             });
 
@@ -354,6 +406,32 @@
         }
 
         document.getElementById("resultado").innerHTML = html;
+    }
+
+    function formatPrecoStatus(s){
+      if (!s) return "";
+      // casos "R$ 0" ou "-R$ 0.15" ou "R$ 0.15"
+      const neg = s.startsWith("-R$");
+      const numStr = s.replace("-R$", "").replace("R$", "").trim();
+      const n = Number(numStr.replace(",", "."));
+      if (Number.isNaN(n)) return s; // fallback
+
+      const br = n.toLocaleString("pt-BR", { style:"currency", currency:"BRL" });
+      return neg ? "-" + br : br;
+    }
+
+    function formatPrecoTexto(s){
+      if (!s) return "";
+      // s pode ser: "+ 1.23 (A MAIS)" ou "- 2.50 (A MENOS)" ou "- (SEM MUDANÇA)"
+      if (s.startsWith("- (SEM")) return s;
+
+      const m = s.match(/^([+-])\s*([0-9.,]+)\s*(.*)$/);
+      if (!m) return s;
+
+      const sinal = m[1];
+      const valor = brl(m[2]);
+      const resto = m[3] || "";
+      return `${sinal} ${valor} ${resto}`.trim();
     }
 
     function escapeHtml(str) {

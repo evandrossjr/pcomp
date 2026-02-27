@@ -14,47 +14,52 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class ConferirNotaVsPedidoService {
 
-    private final ObjectMapper objectMapper;
     private final OmiePedidoParser pedidoParser;
     private final OmieNfParser nfParser;
 
-    public ConferirNotaVsPedidoService(ObjectMapper objectMapper, OmiePedidoParser pedidoParser, OmieNfParser nfParser) {
-        this.objectMapper = objectMapper;
+    public ConferirNotaVsPedidoService(OmiePedidoParser pedidoParser, OmieNfParser nfParser) {
         this.pedidoParser = pedidoParser;
         this.nfParser = nfParser;
     }
 
-    public RelatorioConferenciaDTO conferir(JsonNode pedidoJson,  List<JsonNode> nfsJson, BigDecimal toleranciaValor) {
+    public RelatorioConferenciaDTO conferir(JsonNode pedidoJson, List<JsonNode> nfsJson, BigDecimal toleranciaValor) {
 
         if (nfsJson == null || nfsJson.isEmpty()) {
             throw new IllegalArgumentException("É obrigatório informar pelo menos uma NF.");
         }
 
-        DocumentoCompra pedido = pedidoParser.parse(pedidoJson);
-        List<ItemDoc> itensNfTotal = new ArrayList<>();
-        for (JsonNode nfJson : nfsJson) {
-            DocumentoCompra nf = nfParser.parse(nfJson);
-            itensNfTotal.addAll(nf.itens());
-        }
-        BigDecimal tol = (toleranciaValor == null) ? BigDecimal.ZERO : toleranciaValor;
+        BigDecimal tol = nz(toleranciaValor);
 
-        // mapas para avisos de cadastro
+        DocumentoCompra pedido = pedidoParser.parse(pedidoJson);
+
+        // 1) Parseia TODAS as NFs e junta itens
+        ParseNfsResult nfs = parseNfs(nfsJson);
+        List<ItemDoc> itensNfTotal = nfs.itensNfTotal();
+        String nfIdConcat = nfs.nfIdConcat();
+
+        // 2) Mapas para avisos de cadastro e SKUs principais
         var pedidoEanSkus = mapEanParaSkus(pedido.itens());
         var nfEanSkus     = mapEanParaSkus(itensNfTotal);
         var pedidoSkuEans = mapSkuParaEans(pedido.itens());
         var nfSkuEans     = mapSkuParaEans(itensNfTotal);
 
-        // agrega (1 linha por produto) -> GARANTA que ItemAggregator usa EAN como chave primeiro
-        Map<String, ItemDoc> nfAgg = ItemAggregator.agruparPorChave(itensNfTotal);
+        // 3) Agrega (1 linha por produto)
         Map<String, ItemDoc> pedidoAgg = ItemAggregator.agruparPorChave(pedido.itens());
+        Map<String, ItemDoc> nfAgg     = ItemAggregator.agruparPorChave(itensNfTotal);
 
+        // 4) Totais gerais
+        BigDecimal totalPedidoGeral = somarTotais(pedidoAgg.values());
+        BigDecimal totalNfGeral     = somarTotais(nfAgg.values());
+
+        // 5) Monta linhas (na regra: pedido primeiro, depois NF sem pedido)
         List<AlertaItemDTO> linhas = new ArrayList<>();
 
-        // 1) produtos do pedido
+        // 5.1) Itens do pedido (comparação principal)
         for (var entry : pedidoAgg.entrySet()) {
             String chave = entry.getKey();
             ItemDoc p = entry.getValue();
@@ -66,45 +71,56 @@ public class ConferirNotaVsPedidoService {
             String skuNf = skuPrincipalNf(chave, nfEanSkus);
 
             BigDecimal qtdPedido = nz(p.quantidade());
+            BigDecimal unitPedido = nz(p.valorUnitario());
             BigDecimal totalPedido = nz(p.valorTotal());
 
-            // não existe na NF => FALTA
+            // Se não existe na NF => falta total
             if (n == null) {
+                BigDecimal qtdNf = BigDecimal.ZERO;
+
+                String stQtd = statusQtd(qtdPedido, qtdNf);
+                BigDecimal diffQtd = qtdDiferenca(qtdPedido, qtdNf);
+
                 linhas.add(new AlertaItemDTO(
                         chave,
                         descSafe(p.descricao()),
                         skuPedido,
-                        "-",                 // skuNf
-                        "FALTA",
-                        "-",                 // sem preço
+                        "-",
+                        stQtd,
+                        diffQtd,
+                        unitPedido,
+                        BigDecimal.ZERO,
+                        "- (SEM MUDANÇA)",      // você pode preferir "-" aqui
                         aviso,
                         qtdPedido,
-                        BigDecimal.ZERO,
+                        qtdNf,
                         totalPedido,
                         BigDecimal.ZERO
                 ));
                 continue;
             }
 
+            // Existe na NF
             BigDecimal qtdNf = nz(n.quantidade());
+            BigDecimal unitNf = nz(n.valorUnitario());
             BigDecimal totalNf = nz(n.valorTotal());
 
-            // status qtd
-            String statusQtd = "OK";
-            int cmp = qtdNf.compareTo(qtdPedido);
-            if (cmp < 0) statusQtd = "FALTA";
-            else if (cmp > 0) statusQtd = "SOBRA";
+            String stQtd = statusQtd(qtdPedido, qtdNf);
+            BigDecimal diffQtd = qtdDiferenca(qtdPedido, qtdNf);
 
-            // status preço (só OK / PRECO_DIFERENTE)
-            String statusPreco = diferente(totalPedido, totalNf, tol) ? "PRECO_DIFERENTE" : "OK";
+            // Status preço pelo UNITÁRIO (como você pediu)
+            String stPrecoTexto = statusPrecoTexto(unitPedido, unitNf, tol);
 
             linhas.add(new AlertaItemDTO(
                     chave,
-                    descSafe(p.descricao()),   // prefiro descrição do pedido
+                    descSafe(prioridadeDesc(p.descricao(), n.descricao())),
                     skuPedido,
                     skuNf,
-                    statusQtd,
-                    statusPreco,
+                    stQtd,
+                    diffQtd,
+                    unitPedido,
+                    unitNf,
+                    stPrecoTexto,
                     aviso,
                     qtdPedido,
                     qtdNf,
@@ -113,7 +129,7 @@ public class ConferirNotaVsPedidoService {
             ));
         }
 
-        // 2) itens da NF sem pedido
+        // 5.2) Itens na NF que não estão no pedido
         for (var entry : nfAgg.entrySet()) {
             String chave = entry.getKey();
             if (pedidoAgg.containsKey(chave)) continue;
@@ -121,50 +137,81 @@ public class ConferirNotaVsPedidoService {
             ItemDoc n = entry.getValue();
 
             String skuNf = skuPrincipalNf(chave, nfEanSkus);
+            BigDecimal qtdNf = nz(n.quantidade());
+            BigDecimal unitNf = nz(n.valorUnitario());
+            BigDecimal totalNf = nz(n.valorTotal());
 
             linhas.add(new AlertaItemDTO(
                     chave,
                     descSafe(n.descricao()),
-                    "-",                      // skuPedido
+                    "-",
                     skuNf,
                     "ITEM_SEM_PEDIDO",
-                    "",                       // sem preço
-                    "OK",                     // você pediu sem aviso de preço; aqui fica OK
                     BigDecimal.ZERO,
-                    nz(n.quantidade()),
                     BigDecimal.ZERO,
-                    nz(n.valorTotal())
+                    unitNf,
+                    "",                 // sem status de preço como você pediu
+                    "OK",
+                    BigDecimal.ZERO,
+                    qtdNf,
+                    BigDecimal.ZERO,
+                    totalNf
             ));
         }
 
-        List<String> idsNf = new ArrayList<>();
-
-        for (JsonNode nfJson : nfsJson) {
-            DocumentoCompra nf = nfParser.parse(nfJson);
-            itensNfTotal.addAll(nf.itens());
-            idsNf.add(nf.id());
-        }
-
-        String nfIdConcat = String.join(", ", idsNf);
-
+        // 6) Status geral
         String status = linhas.isEmpty() ? "OK" : "ALERTA";
+
         return new RelatorioConferenciaDTO(
                 pedido.id(),
                 nfIdConcat,
                 status,
                 pedidoAgg.size(),
                 nfAgg.size(),
+                totalPedidoGeral,
+                totalNfGeral,
                 linhas
         );
     }
 
-    // ---------- helpers cadastro / sku-ean ----------
+    // ------------------------ parsing NFs ------------------------
+
+    private ParseNfsResult parseNfs(List<JsonNode> nfsJson) {
+        List<ItemDoc> itensNfTotal = new ArrayList<>();
+        List<String> idsNf = new ArrayList<>();
+
+        for (JsonNode nfJson : nfsJson) {
+            DocumentoCompra nf = nfParser.parse(nfJson);
+            idsNf.add(nf.id());
+            itensNfTotal.addAll(nf.itens());
+        }
+
+        String nfIdConcat = idsNf.stream()
+                .filter(s -> s != null && !s.isBlank())
+                .collect(Collectors.joining(", "));
+
+        if (nfIdConcat.isBlank()) nfIdConcat = "MULTI_NF";
+
+        return new ParseNfsResult(itensNfTotal, nfIdConcat);
+    }
+
+    private record ParseNfsResult(List<ItemDoc> itensNfTotal, String nfIdConcat) {}
+
+    // ------------------------ totais ------------------------
+
+    private BigDecimal somarTotais(Collection<ItemDoc> itens) {
+        BigDecimal total = BigDecimal.ZERO;
+        for (ItemDoc i : itens) total = total.add(nz(i.valorTotal()));
+        return total;
+    }
+
+    // ------------------------ helpers cadastro / sku-ean ------------------------
 
     private Map<String, Set<String>> mapEanParaSkus(List<ItemDoc> itens) {
         Map<String, Set<String>> m = new HashMap<>();
         for (ItemDoc i : itens) {
-            String ean = (i.ean() == null || i.ean().isBlank()) ? null : i.ean().trim();
-            String sku = (i.sku() == null || i.sku().isBlank()) ? null : normalizarSku(i.sku());
+            String ean = normEan(i.ean());
+            String sku = normSku(i.sku());
             if (ean == null || sku == null) continue;
             m.computeIfAbsent(ean, k -> new HashSet<>()).add(sku);
         }
@@ -174,8 +221,8 @@ public class ConferirNotaVsPedidoService {
     private Map<String, Set<String>> mapSkuParaEans(List<ItemDoc> itens) {
         Map<String, Set<String>> m = new HashMap<>();
         for (ItemDoc i : itens) {
-            String sku = (i.sku() == null || i.sku().isBlank()) ? null : normalizarSku(i.sku());
-            String ean = (i.ean() == null || i.ean().isBlank()) ? null : i.ean().trim();
+            String sku = normSku(i.sku());
+            String ean = normEan(i.ean());
             if (ean == null || sku == null) continue;
             m.computeIfAbsent(sku, k -> new HashSet<>()).add(ean);
         }
@@ -236,20 +283,69 @@ public class ConferirNotaVsPedidoService {
         return set.stream().sorted().findFirst().orElse("-");
     }
 
-    private String normalizarSku(String sku) {
+    private String normSku(String sku) {
+        if (sku == null) return null;
         String s = sku.trim();
+        if (s.isEmpty()) return null;
+        // remove zeros à esquerda
         return s.replaceFirst("^0+(?!$)", "");
+    }
+
+    private String normEan(String ean) {
+        if (ean == null) return null;
+        String s = ean.trim();
+        if (s.isEmpty()) return null;
+        return s;
+    }
+
+    // ------------------------ regras negócio ------------------------
+
+    private String statusQtd(BigDecimal qtdPedido, BigDecimal qtdNf) {
+        int cmp = nz(qtdNf).compareTo(nz(qtdPedido));
+        if (cmp == 0) return "OK";
+        if (cmp > 0) return "SOBRA";
+        // cmp < 0
+        return nz(qtdNf).compareTo(BigDecimal.ZERO) > 0 ? "FALTA_PARCIAL" : "FALTA";
+    }
+
+    private BigDecimal qtdDiferenca(BigDecimal qtdPedido, BigDecimal qtdNf) {
+        // positivo = pendente | negativo = a mais
+        return nz(qtdPedido).subtract(nz(qtdNf));
+    }
+
+    private String statusPrecoTexto(BigDecimal unitPedido, BigDecimal unitNf, BigDecimal tol) {
+        BigDecimal a = nz(unitPedido);
+        BigDecimal b = nz(unitNf);
+
+        BigDecimal diff = b.subtract(a); // NF - Pedido
+
+        // tolerância
+        if (diff.abs().compareTo(nz(tol)) <= 0) {
+            return "R$ 0";
+        }
+
+        // se menor, prefixo com - colado (sem espaço) pra evitar Excel "inventar fórmula"
+        if (diff.compareTo(BigDecimal.ZERO) < 0) {
+            return "-R$ " + diff.abs().toPlainString();
+        }
+
+        // se maior
+        return "R$ " + diff.toPlainString();
+    }
+
+    // ------------------------ util ------------------------
+
+    private BigDecimal nz(BigDecimal v) {
+        return v == null ? BigDecimal.ZERO : v;
     }
 
     private String descSafe(String s) {
         return (s == null || s.isBlank()) ? "-" : s;
     }
 
-    private boolean diferente(BigDecimal a, BigDecimal b, BigDecimal tol) {
-        return nz(a).subtract(nz(b)).abs().compareTo(tol) > 0;
-    }
-
-    private BigDecimal nz(BigDecimal v) {
-        return v == null ? BigDecimal.ZERO : v;
+    private String prioridadeDesc(String descPedido, String descNf) {
+        // usa pedido primeiro, se vazio usa NF
+        if (descPedido != null && !descPedido.isBlank()) return descPedido;
+        return descNf;
     }
 }
