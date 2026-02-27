@@ -362,7 +362,8 @@
             html += "<table>";
             html += "<tr>"
              + "<th>Chave</th><th>Descrição</th><th>SKU Pedido</th><th>SKU NF</th>"
-             + "<th>Qtd</th><th>Status Preço</th><th>Status Cadastro</th>"
+             + "<th>Qtd Status</th><th>Qtd NF</th>"
+             + "<th>Status Preço</th><th>Status Cadastro</th>"
              + "<th>Qtd Pedido</th><th>Valor Unit Pedido</th>"
              + "<th>Qtd NF</th><th>Valor Unit NF</th>"
              + "<th>Total Pedido</th><th>Total NF</th>"
@@ -375,19 +376,21 @@
               html += "<td>" + (a.skuPedido || "-") + "</td>";
               html += "<td>" + (a.skuNf || "-") + "</td>";
 
-              // Qtd (mostrar pendente/a mais)
-              // qtdDiferenca > 0 => pendente; < 0 => a mais
-              let qtdTxt = "-";
-              if (a.qtdDiferenca !== null && a.qtdDiferenca !== undefined) {
-                const q = Number(a.qtdDiferenca);
-                if (q > 0) qtdTxt = "Pendente: " + num(q);
-                else if (q < 0) qtdTxt = "A mais: " + num(Math.abs(q));
-                else qtdTxt = "OK";
-              }
-              html += "<td>" + (a.statusQuantidade || "") + " • " + qtdTxt + "</td>";
+              // Qtd Status (só o status)
+                html += "<td>" + (a.statusQuantidade || "") + "</td>";
 
-              // Status preço: vem texto, mas trocar o número por BRL
-              html += "<td>" + formatPrecoTexto(a.statusPrecoTexto) + "</td>";
+                // Qtd (diferença: positivo = pendente, negativo = a mais)
+                let qtdDif = "";
+                if (a.qtdDiferenca !== null && a.qtdDiferenca !== undefined) {
+                  const q = Number(a.qtdDiferenca);
+                  if (q > 0) qtdDif = num(q);           // pendente
+                  else if (q < 0) qtdDif = "-" + num(Math.abs(q)); // a mais (negativo)
+                  else qtdDif = "";                     // ok => vazio
+                }
+              html += "<td>" + qtdDif + "</td>";
+
+              // Status preço (formatado BRL)
+              html += "<td>" + formatPrecoStatus(a.statusPrecoTexto) + "</td>";
 
               html += "<td>" + (a.avisoCadastro || "") + "</td>";
 
