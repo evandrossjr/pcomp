@@ -9,10 +9,8 @@ public record LinhaXmlDTO(
         String ean,
         String skuFornecedor,
         String descricao,
+        BigDecimal qtd,
         BigDecimal valorUnitario,
         BigDecimal ipiUnitario,
         BigDecimal valorTotal
-
-
-
         ) {}

@@ -12,6 +12,7 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -47,11 +48,50 @@ public class NfeXmlExtractorService {
                     String cProd = firstText(det, "prod", "cProd");
                     String xProd = firstText(det, "prod", "xProd");
 
+                    String qtdStr = firstText(det, "prod", "qCom");
+                    BigDecimal quantidade = parseBigDecimal(qtdStr);
+
                     String vUnCom = firstText(det, "prod", "vUnCom");
+                    String vProd = firstText(det, "prod", "vProd");
+
                     if (isBlank(vUnCom)) vUnCom = firstText(det, "prod", "vUnTrib");
 
                     BigDecimal valorUnit = parseBigDecimal(vUnCom);
+                    BigDecimal vTotal = parseBigDecimal(vProd);
 
+                    // calcula total se não vier
+                    if (vTotal == null && valorUnit != null && quantidade != null) {
+                        vTotal = valorUnit.multiply(quantidade);
+                    }
+
+
+
+                    // IPI (pode não existir)
+                    BigDecimal ipiUnit = BigDecimal.ZERO;
+
+                    NodeList ipiList = det.getElementsByTagName("IPI");
+                    if (ipiList.getLength() > 0) {
+                        Element ipi = (Element) ipiList.item(0);
+
+                        // tenta pegar direto
+                        String vIPI = firstText(ipi, "vIPI");
+
+                        // tenta dentro de IPITrib
+                        if (isBlank(vIPI)) {
+                            vIPI = firstText(ipi, "IPITrib", "vIPI");
+                        }
+
+                        BigDecimal totalIPI = parseBigDecimal(vIPI);
+
+                        BigDecimal qtd = quantidade;
+
+                        if (totalIPI != null && qtd != null && qtd.compareTo(BigDecimal.ZERO) > 0) {
+                            ipiUnit = totalIPI.divide(qtd, 6, RoundingMode.HALF_UP);
+                        }
+                        System.out.println("Produto: " + xProd);
+                        System.out.println("Qtd: " + qtdStr);
+                        System.out.println("IPI total: " + vIPI);
+                    }
                     // normalizações leves
                     if ("SEM GTIN".equalsIgnoreCase(safe(ean))) ean = "";
 
@@ -62,7 +102,10 @@ public class NfeXmlExtractorService {
                             safe(ean),
                             safe(cProd),
                             safe(xProd),
-                            valorUnit
+                            quantidade,
+                            valorUnit,
+                            ipiUnit,
+                            vTotal
                     ));
                 }
 
