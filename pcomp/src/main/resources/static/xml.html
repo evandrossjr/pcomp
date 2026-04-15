@@ -252,13 +252,15 @@
 
     html += "<table>";
     html += "<tr>\
+    <th>#</th>\
+    <th>NF</th>\
+    <th>SKU</th>\
     <th>EAN</th>\
-    <th>SKU Fornecedor</th>\
     <th>Descrição</th>\
-    <th>Quantidade</th>\
+    <th>Qtd</th>\
     <th>Valor Unit</th>\
+    <th>Total</th>\
     <th>IPI Unit</th>\
-    <th>Valor Total</th>\
     <th>Emissão</th>\
     <th>Fornecedor</th>\
     <th>Arquivo</th>\
@@ -266,13 +268,17 @@
 
     data.linhas.forEach(l => {
       html += "<tr>";
-      html += "<td class='mono'>" + esc(l.ean) + "</td>";
+      html += "<td class='mono'>" + l.sequencia + "</td>";
+      html += "<td class='mono'>" + esc(l.numeroNf) + "</td>";
       html += "<td>" + esc(l.skuFornecedor) + "</td>";
+      html += "<td class='mono'>" + esc(l.ean) + "</td>";
       html += "<td>" + esc(l.descricao) + "</td>";
-      html += "<td>" + esc(l.qtd) + "</td>";
+
+      html += "<td class='right mono'>" + formatBRNumber(l.quantidade) + "</td>";
       html += "<td class='right mono'>" + formatBRNumber(l.valorUnitario) + "</td>";
-      html += "<td class='right mono'>" + formatBRNumber(l.ipiUnitario) + "</td>";
       html += "<td class='right mono'>" + formatBRNumber(l.valorTotal) + "</td>";
+      html += "<td class='right mono'>" + formatBRNumber(l.ipiUnitario) + "</td>";
+
       html += "<td>" + esc(l.dataEmissao) + "</td>";
       html += "<td>" + esc(l.fornecedorNome) + "</td>";
       html += "<td>" + esc(l.arquivo) + "</td>";

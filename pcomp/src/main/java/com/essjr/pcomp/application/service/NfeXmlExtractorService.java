@@ -29,12 +29,14 @@ public class NfeXmlExtractorService {
 
         List<LinhaXmlDTO> linhas = new ArrayList<>();
 
+        int seq = 1;
         for (MultipartFile f : files) {
             if (f.isEmpty()) continue;
 
             try (InputStream in = f.getInputStream()) {
                 Document doc = parseXmlSeguro(in);
 
+                String numeroNf = firstText(doc, "ide", "nNF");
                 String fornecedor = firstText(doc, "emit", "xNome");
                 String dataEmissao = firstText(doc, "ide", "dhEmi");
                 if (isBlank(dataEmissao)) dataEmissao = firstText(doc, "ide", "dEmi");
@@ -96,6 +98,8 @@ public class NfeXmlExtractorService {
                     if ("SEM GTIN".equalsIgnoreCase(safe(ean))) ean = "";
 
                     linhas.add(new LinhaXmlDTO(
+                            seq++,
+                            safe(numeroNf),
                             safe(f.getOriginalFilename()),
                             safe(fornecedor),
                             safe(dataEmissao),
