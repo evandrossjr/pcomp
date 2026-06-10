@@ -59,9 +59,14 @@ public class NfeXmlExtractorService {
                     if (isBlank(vUnCom)) vUnCom = firstText(det, "prod", "vUnTrib");
 
                     
+                    BigDecimal valorUnit = parseBigDecimal(vUnCom);
+                    BigDecimal vTotal = parseBigDecimal(vProd);
 
-
-
+                    // calcula total se não vier
+                    if (vTotal == null && valorUnit != null && quantidade != null) {
+                        vTotal = valorUnit.multiply(quantidade);
+                    }
+                    
                     // IPI (pode não existir)
                     BigDecimal ipiUnit = BigDecimal.ZERO;
 
@@ -89,16 +94,10 @@ public class NfeXmlExtractorService {
                         System.out.println("IPI total: " + vIPI);
                     }
 
-                    BigDecimal valorUnit = parseBigDecimal(vUnCom) + ipiUnit;
-                    BigDecimal vTotal = parseBigDecimal(vProd + ipiUnit);
-
-                    // calcula total se não vier
-                    if (vTotal == null && valorUnit != null && quantidade != null) {
-                        vTotal = valorUnit.multiply(quantidade);
-                    }
-                    
-
-                    
+                    BigDecimal valorUnitComIpi = valorUnit != null ? valorUnit.add(ipiUnit) : ipiUnit;
+                    BigDecimal vTotalComIpi = vTotal != null ? vTotal.add(ipiUnit.multiply(quantidade != null ? quantidade : BigDecimal.ONE))
+                                               : valorUnitComIpi.multiply(quantidade != null ? quantidade : BigDecimal.ONE);
+                   
                     // normalizações leves
                     if ("SEM GTIN".equalsIgnoreCase(safe(ean))) ean = "";
 
@@ -112,9 +111,9 @@ public class NfeXmlExtractorService {
                             safe(cProd),
                             safe(xProd),
                             quantidade,
-                            valorUnit,
+                            valorUnitComIpi,
                             ipiUnit,
-                            vTotal
+                            vTotalComIpi
                     ));
                 }
 
