@@ -58,13 +58,7 @@ public class NfeXmlExtractorService {
 
                     if (isBlank(vUnCom)) vUnCom = firstText(det, "prod", "vUnTrib");
 
-                    BigDecimal valorUnit = parseBigDecimal(vUnCom);
-                    BigDecimal vTotal = parseBigDecimal(vProd);
-
-                    // calcula total se não vier
-                    if (vTotal == null && valorUnit != null && quantidade != null) {
-                        vTotal = valorUnit.multiply(quantidade);
-                    }
+                    
 
 
 
@@ -94,6 +88,17 @@ public class NfeXmlExtractorService {
                         System.out.println("Qtd: " + qtdStr);
                         System.out.println("IPI total: " + vIPI);
                     }
+
+                    BigDecimal valorUnit = parseBigDecimal(vUnCom) + ipiUnit;
+                    BigDecimal vTotal = parseBigDecimal(vProd + ipiUnit);
+
+                    // calcula total se não vier
+                    if (vTotal == null && valorUnit != null && quantidade != null) {
+                        vTotal = valorUnit.multiply(quantidade);
+                    }
+                    
+
+                    
                     // normalizações leves
                     if ("SEM GTIN".equalsIgnoreCase(safe(ean))) ean = "";
 
