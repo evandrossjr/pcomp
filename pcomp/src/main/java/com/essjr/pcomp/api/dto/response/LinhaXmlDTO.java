@@ -14,5 +14,7 @@ public record LinhaXmlDTO(
         BigDecimal quantidade,
         BigDecimal valorUnitario,
         BigDecimal ipiUnitario,
-        BigDecimal valorTotal
+        BigDecimal valorTotal,
+        String cfop,
+        String naturezaOperacao
         ) {}

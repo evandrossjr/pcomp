@@ -261,6 +261,8 @@
     <th>Valor Unit</th>\
     <th>Total</th>\
     <th>IPI Unit</th>\
+    <th>CFOP</th>\
+    <th>Natureza da Operação</th>\
     <th>Emissão</th>\
     <th>Fornecedor</th>\
     <th>Arquivo</th>\
@@ -278,6 +280,8 @@
       html += "<td class='right mono'>" + formatBRNumber(l.valorUnitario) + "</td>";
       html += "<td class='right mono'>" + formatBRNumber(l.valorTotal) + "</td>";
       html += "<td class='right mono'>" + formatBRNumber(l.ipiUnitario) + "</td>";
+      html += "<td class='mono'>" + esc(l.cfop) + "</td>";
+      html += "<td>" + esc(l.naturezaOperacao) + "</td>";
 
       html += "<td>" + esc(l.dataEmissao) + "</td>";
       html += "<td>" + esc(l.fornecedorNome) + "</td>";

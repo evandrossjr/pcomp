@@ -37,6 +37,7 @@ public class NfeXmlExtractorService {
                 Document doc = parseXmlSeguro(in);
 
                 String numeroNf = firstText(doc, "ide", "nNF");
+                String naturezaOperacao = firstText(doc, "ide", "natOp");
                 String fornecedor = firstText(doc, "emit", "xNome");
                 String dataEmissao = firstText(doc, "ide", "dhEmi");
                 if (isBlank(dataEmissao)) dataEmissao = firstText(doc, "ide", "dEmi");
@@ -55,6 +56,8 @@ public class NfeXmlExtractorService {
 
                     String vUnCom = firstText(det, "prod", "vUnCom");
                     String vProd = firstText(det, "prod", "vProd");
+
+                    String cfop = firstText(det, "prod", "CFOP");
 
                     if (isBlank(vUnCom)) vUnCom = firstText(det, "prod", "vUnTrib");
 
@@ -113,7 +116,9 @@ public class NfeXmlExtractorService {
                             quantidade,
                             valorUnitComIpi,
                             ipiUnit,
-                            vTotalComIpi
+                            vTotalComIpi,
+                            safe(cfop),
+                            safe(naturezaOperacao)
                     ));
                 }
 
