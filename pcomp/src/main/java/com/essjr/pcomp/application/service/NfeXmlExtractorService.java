@@ -24,7 +24,7 @@ public class NfeXmlExtractorService {
             throw new IllegalArgumentException("Envie pelo menos 1 XML.");
         }
         if (files.length > 100) {
-            throw new IllegalArgumentException("Máximo de 20 arquivos por envio.");
+            throw new IllegalArgumentException("Máximo de 100 arquivos por envio.");
         }
 
         List<LinhaXmlDTO> linhas = new ArrayList<>();
