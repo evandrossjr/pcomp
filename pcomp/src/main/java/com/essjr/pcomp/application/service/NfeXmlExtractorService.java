@@ -61,23 +61,7 @@ public class NfeXmlExtractorService {
 
                 String observacoes = firstText(doc, "infAdic", "infCpl");
                 
-                private String extrairReferenciaNfe(Document doc) {
-                    NodeList nfRefs = doc.getElementsByTagName("NFref");
-                
-                    for (int i = 0; i < nfRefs.getLength(); i++) {
-                        Element nfRef = (Element) nfRefs.item(i);
-                
-                        String ref = firstText(nfRef, "refNFe");
-                
-                        if (!isBlank(ref)) {
-                            return ref;
-                        }
-                    }
-                
-                    return null;
-                }
-                
-                
+                                
                 String refNFe = extrairReferenciaNfe(doc);
 
                     if (isBlank(vUnCom)) vUnCom = firstText(det, "prod", "vUnTrib");
@@ -220,4 +204,21 @@ public class NfeXmlExtractorService {
     private String safe(String s) {
         return s == null ? "" : s.trim();
     }
+
+    private String extrairReferenciaNfe(Document doc) {
+        NodeList nfRefs = doc.getElementsByTagName("NFref");
+    
+        for (int i = 0; i < nfRefs.getLength(); i++) {
+            Element nfRef = (Element) nfRefs.item(i);
+    
+            String ref = firstText(nfRef, "refNFe");
+    
+            if (!isBlank(ref)) {
+                return ref;
+            }
+        }
+    
+        return null;
+    }
+                
 }
