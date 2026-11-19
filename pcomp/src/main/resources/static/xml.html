@@ -289,7 +289,7 @@
       html += "<td>" + esc(l.fornecedorNome) + "</td>";
       html += "<td>" + esc(l.arquivo) + "</td>";
       html += "<td>" + esc(l.observacoes) + "</td>";
-      html += "<td class='mono'>" + esc(l.refNFe) + "</td>";
+      html += "<td class='mono'>" + esc(l.refNFe ? l.refNFe.substring(25, 34) : "") + "</td>";      
       html += "</tr>";
     });
 
