@@ -41,6 +41,8 @@ public class NfeXmlExtractorService {
                 String fornecedor = firstText(doc, "emit", "xNome");
                 String dataEmissao = firstText(doc, "ide", "dhEmi");
                 if (isBlank(dataEmissao)) dataEmissao = firstText(doc, "ide", "dEmi");
+                String observacoes = firstText(doc, "infAdic", "infCpl");                                 
+                String refNFe = extrairReferenciaNfe(doc);
 
                 NodeList dets = doc.getElementsByTagName("det");
                 for (int i = 0; i < dets.getLength(); i++) {
@@ -59,13 +61,7 @@ public class NfeXmlExtractorService {
 
                     String cfop = firstText(det, "prod", "CFOP");
 
-                String observacoes = firstText(doc, "infAdic", "infCpl");
-                
-                                
-                String refNFe = extrairReferenciaNfe(doc);
-
                     if (isBlank(vUnCom)) vUnCom = firstText(det, "prod", "vUnTrib");
-
                     
                     BigDecimal valorUnit = parseBigDecimal(vUnCom);
                     BigDecimal vTotal = parseBigDecimal(vProd);
@@ -139,6 +135,22 @@ public class NfeXmlExtractorService {
         return new XmlExtracaoResponse(files.length, linhas.size(), linhas);
     }
 
+     private String extrairReferenciaNfe(Document doc) {
+        NodeList nfRefs = doc.getElementsByTagName("NFref");
+    
+        for (int i = 0; i < nfRefs.getLength(); i++) {
+            Element nfRef = (Element) nfRefs.item(i);
+    
+            String ref = firstText(nfRef, "refNFe");
+    
+            if (!isBlank(ref)) {
+                return ref;
+            }
+        }
+    
+        return null;
+    }
+    
     private Document parseXmlSeguro(InputStream in) throws Exception {
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 
@@ -205,20 +217,6 @@ public class NfeXmlExtractorService {
         return s == null ? "" : s.trim();
     }
 
-    private String extrairReferenciaNfe(Document doc) {
-        NodeList nfRefs = doc.getElementsByTagName("NFref");
-    
-        for (int i = 0; i < nfRefs.getLength(); i++) {
-            Element nfRef = (Element) nfRefs.item(i);
-    
-            String ref = firstText(nfRef, "refNFe");
-    
-            if (!isBlank(ref)) {
-                return ref;
-            }
-        }
-    
-        return null;
-    }
+   
                 
 }
