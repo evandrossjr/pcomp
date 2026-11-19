@@ -59,6 +59,8 @@ public class NfeXmlExtractorService {
 
                     String cfop = firstText(det, "prod", "CFOP");
 
+String observacoes = firstText(doc, "infAdic", "infCpl");
+
                     if (isBlank(vUnCom)) vUnCom = firstText(det, "prod", "vUnTrib");
 
                     
