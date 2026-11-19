@@ -16,5 +16,6 @@ public record LinhaXmlDTO(
         BigDecimal ipiUnitario,
         BigDecimal valorTotal,
         String cfop,
-        String naturezaOperacao
+        String naturezaOperacao,
+String observacoes
         ) {}
