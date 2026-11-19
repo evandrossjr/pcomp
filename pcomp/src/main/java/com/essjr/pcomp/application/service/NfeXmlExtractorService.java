@@ -120,7 +120,8 @@ String observacoes = firstText(doc, "infAdic", "infCpl");
                             ipiUnit,
                             vTotalComIpi,
                             safe(cfop),
-                            safe(naturezaOperacao)
+                            safe(naturezaOperacao),
+safe(observacoes)
                     ));
                 }
 
