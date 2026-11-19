@@ -23,7 +23,7 @@ public class NfeXmlExtractorService {
         if (files == null || files.length == 0) {
             throw new IllegalArgumentException("Envie pelo menos 1 XML.");
         }
-        if (files.length > 20) {
+        if (files.length > 100) {
             throw new IllegalArgumentException("Máximo de 20 arquivos por envio.");
         }
 
