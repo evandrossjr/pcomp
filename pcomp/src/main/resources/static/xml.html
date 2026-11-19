@@ -266,7 +266,9 @@
     <th>Emissão</th>\
     <th>Fornecedor</th>\
     <th>Arquivo</th>\
-<th>Observações NF</th>\
+<th>Observações NF</th>
+<th>NF Referenciada</th>
+
     </tr>";
 
     data.linhas.forEach(l => {
@@ -288,6 +290,7 @@
       html += "<td>" + esc(l.fornecedorNome) + "</td>";
       html += "<td>" + esc(l.arquivo) + "</td>";
 html += "<td>" + esc(l.observacoes) + "</td>";
+html += "<td class='mono'>" + esc(l.refNFe) + "</td>";
       html += "</tr>";
     });
 
