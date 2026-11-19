@@ -266,6 +266,7 @@
     <th>Emissão</th>\
     <th>Fornecedor</th>\
     <th>Arquivo</th>\
+<th>Observações NF</th>\
     </tr>";
 
     data.linhas.forEach(l => {
@@ -286,6 +287,7 @@
       html += "<td>" + esc(l.dataEmissao) + "</td>";
       html += "<td>" + esc(l.fornecedorNome) + "</td>";
       html += "<td>" + esc(l.arquivo) + "</td>";
+html += "<td>" + esc(l.observacoes) + "</td>";
       html += "</tr>";
     });
 
