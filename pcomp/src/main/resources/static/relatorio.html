@@ -267,7 +267,7 @@
       html += "<tr>";
       html += "<td class='mono'>" + l.sequencia + "</td>";
       html += "<td class='mono'>" + esc(l.numeroNf) + "</td>";
-      html += "<td class='mono'>" + formatarMoeda(l.valorTotalNf) + "</td>";
+      html += "<td class='mono'>" + formatBRNumber(l.valorTotalNf) + "</td>";
       html += "<td class='mono'>" + esc(l.refNFe ? l.refNFe.substring(25, 34) : "") + "</td>";
       html += "<td class='mono'>" + esc(l.cfop) + "</td>";
       html += "<td>" + esc(l.naturezaOperacao) + "</td>";
