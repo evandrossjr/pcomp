@@ -43,6 +43,8 @@ public class NfeXmlExtractorService {
                 if (isBlank(dataEmissao)) dataEmissao = firstText(doc, "ide", "dEmi");
                 String observacoes = firstText(doc, "infAdic", "infCpl");                                 
                 String refNFe = extrairReferenciaNfe(doc);
+                String valorTotalNfStr = firstText(doc, "ICMSTot", "vNF");
+                BigDecimal valorTotalNf = parseBigDecimal(valorTotalNfStr);
 
                 NodeList dets = doc.getElementsByTagName("det");
                 for (int i = 0; i < dets.getLength(); i++) {
@@ -121,7 +123,8 @@ public class NfeXmlExtractorService {
                             safe(cfop),
                             safe(naturezaOperacao),
                             safe(observacoes),
-                            safe(refNFe)
+                            safe(refNFe),
+                            valorTotalNf
                     ));
                 }
 

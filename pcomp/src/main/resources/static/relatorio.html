@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Relatório NF XML (NF-e)</title>
+  <link rel="icon" href="data:,">
+  <style>
+    :root{
+      --bg:#0b0f1a;
+      --card:#0f172a;
+      --muted:#94a3b8;
+      --text:#e2e8f0;
+      --line:rgba(148,163,184,.18);
+      --accent:#60a5fa;
+      --good:#22c55e;
+      --bad:#ef4444;
+      --warn:#f59e0b;
+    }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background: radial-gradient(1200px 600px at 20% -10%, rgba(96,165,250,.25), transparent 55%),
+                  radial-gradient(1000px 600px at 90% 0%, rgba(34,197,94,.16), transparent 50%),
+                  var(--bg);
+      color:var(--text);
+    }
+
+    .wrap{ max-width:1100px; margin:0 auto; padding:28px 16px 60px; }
+
+    .topbar{
+      display:flex; align-items:center; justify-content:space-between;
+      gap:12px; margin-bottom:18px;
+    }
+    .title{
+      display:flex; flex-direction:column; gap:2px;
+    }
+    h2{ margin:0; font-size:20px; letter-spacing:.2px; }
+    .subtitle{ color:var(--muted); font-size:13px; }
+
+    a{
+      color:var(--accent); text-decoration:none;
+      border:1px solid rgba(96,165,250,.25);
+      padding:8px 12px; border-radius:10px;
+      background:rgba(96,165,250,.08);
+    }
+    a:hover{ background:rgba(96,165,250,.14); }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.25);
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:14px;
+    }
+
+    label{ font-size:12px; color:var(--muted); display:block; margin-bottom:8px; }
+
+    input[type="file"], input[type="number"]{
+      width:100%;
+      background:rgba(148,163,184,.06);
+      border:1px solid var(--line);
+      color:var(--text);
+      border-radius:12px;
+      padding:10px 12px;
+      outline:none;
+    }
+
+    .row{
+      display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+      margin-top:10px;
+    }
+
+    .btn{
+      border:1px solid var(--line);
+      background:rgba(148,163,184,.08);
+      color:var(--text);
+      padding:10px 14px;
+      border-radius:12px;
+      cursor:pointer;
+      transition: transform .05s ease, background .15s ease, border-color .15s ease;
+    }
+    .btn:hover{ background:rgba(148,163,184,.12); border-color:rgba(148,163,184,.30); }
+    .btn:active{ transform: translateY(1px); }
+
+    .btn.primary{
+      border-color: rgba(96,165,250,.35);
+      background: rgba(96,165,250,.16);
+    }
+    .btn.primary:hover{ background: rgba(96,165,250,.22); }
+
+    .btn.copy{
+      border-color: rgba(34,197,94,.35);
+      background: rgba(34,197,94,.14);
+    }
+    .btn.copy:hover{ background: rgba(34,197,94,.20); }
+
+    .hint{ color:var(--muted); font-size:12px; margin-top:8px; }
+
+    #resultado{ margin-top:14px; }
+
+    .alerta{
+      border:1px solid rgba(239,68,68,.35);
+      background: rgba(239,68,68,.10);
+      padding:10px 12px;
+      border-radius:12px;
+      color: #fecaca;
+      font-weight:600;
+    }
+
+    .statline{
+      display:flex; gap:10px; flex-wrap:wrap; margin:10px 0 14px;
+    }
+    .pill{
+      padding:7px 10px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:rgba(148,163,184,.06);
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    table{
+      width:100%;
+      border-collapse:separate;
+      border-spacing:0;
+      overflow:hidden;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background: rgba(15,23,42,.55);
+    }
+    th, td{
+      padding:10px 10px;
+      border-bottom:1px solid var(--line);
+      font-size:13px;
+      vertical-align:top;
+    }
+    th{
+      text-align:left;
+      font-size:12px;
+      color:var(--muted);
+      background: rgba(148,163,184,.06);
+      position:sticky;
+      top:0;
+      backdrop-filter: blur(8px);
+    }
+    tr:nth-child(even) td{ background: rgba(148,163,184,.03); }
+    tr:hover td{ background: rgba(96,165,250,.08); }
+
+    .right{ text-align:right; font-variant-numeric: tabular-nums; }
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+
+    @media (min-width: 900px){
+      .grid{ grid-template-columns: 1.1fr .9fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="title">
+      <h2>Relatório NF-e XML </h2>
+      <div class="subtitle">Envie até 100 XMLs • saída em tabela (1 linha por item)</div>
+    </div>
+    <a href="/">Voltar para Conferência</a>
+    <a href="/xml.html">Ir para XML para Pedido de Compra XML</a>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <label>Arquivos XML</label>
+      <input type="file" id="files" multiple accept=".xml" />
+
+      <div class="row">
+        <button class="btn primary" type="button" onclick="enviar()">Extrair</button>
+        <button class="btn copy" type="button" onclick="copiarTabela()">Copiar tabela</button>
+      </div>
+
+      <div class="hint">Dica: depois de copiar, é só colar no Excel (as colunas vão separadas).</div>
+    </div>
+
+    <div class="card">
+      <div class="subtitle">
+        Campos extraídos:
+        <div style="margin-top:8px; line-height:1.7;">
+          • EAN (prod/cEAN)<br>
+          • SKU fornecedor (prod/cProd)<br>
+          • Descrição (prod/xProd)<br>
+          • Valor unitário (prod/vUnCom)
+          • Emissão (ide/dhEmi ou ide/dEmi)<br>
+          • Fornecedor (emit/xNome)<br>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="resultado"></div>
+
+</div>
+
+<script>
+  async function enviar() {
+    const input = document.getElementById("files");
+    if (!input.files || input.files.length === 0) {
+      alert("Selecione pelo menos 1 XML.");
+      return;
+    }
+    if (input.files.length > 100) {
+      alert("Máximo de 100 arquivos.");
+      return;
+    }
+
+    const fd = new FormData();
+    for (const f of input.files) fd.append("files", f);
+
+    const resEl = document.getElementById("resultado");
+    resEl.innerHTML = "Processando...";
+
+    try {
+      const resp = await fetch("/api/xml/extrair", { method: "POST", body: fd });
+      const data = await resp.json();
+
+      if (!resp.ok) {
+        resEl.innerHTML = "<p class='alerta'>Erro: " + (data.mensagem || "Falha no processamento") + "</p>";
+        return;
+      }
+
+      render(data);
+    } catch (e) {
+      resEl.innerHTML = "<p class='alerta'>Erro inesperado.</p>";
+    }
+  }
+
+  function render(data) {
+    let html = "";
+    html += `<p><b>Arquivos:</b> ${data.arquivosRecebidos} | <b>Linhas:</b> ${data.linhasGeradas}</p>`;
+    // html += `<button type="button" onclick="copiarTabela()">Copiar tabela</button>`;
+
+    if (!data.linhas || data.linhas.length === 0) {
+      html += "<p>Nenhuma linha encontrada.</p>";
+      document.getElementById("resultado").innerHTML = html;
+      return;
+    }
+
+    html += "<table>";
+    html += "<tr>\
+    <th>#</th>\
+    <th>NF</th>\
+    <th>Total NF</th>\
+    <th>NF Referenciada</th>\
+    <th>CFOP</th>\
+    <th>Natureza da Operação</th>\
+    <th>Emissão</th>\
+    <th>Fornecedor</th>\
+    <th>Observações NF</th>\
+    </tr>";
+
+    data.linhas.forEach(l => {
+      html += "<tr>";
+      html += "<td class='mono'>" + l.sequencia + "</td>";
+      html += "<td class='mono'>" + esc(l.numeroNf) + "</td>";
+      html += "<td class='mono'>" + formatarMoeda(l.valorTotalNf) + "</td>";
+      html += "<td class='mono'>" + esc(l.refNFe ? l.refNFe.substring(25, 34) : "") + "</td>";
+      html += "<td class='mono'>" + esc(l.cfop) + "</td>";
+      html += "<td>" + esc(l.naturezaOperacao) + "</td>";
+      html += "<td>" + esc(l.dataEmissao) + "</td>";
+      html += "<td>" + esc(l.fornecedorNome) + "</td>";
+      html += "<td>" + esc(l.observacoes) + "</td>";
+      html += "</tr>";
+    });
+
+    html += "</table>";
+    document.getElementById("resultado").innerHTML = html;
+  }
+
+  function formatBRNumber(v) {
+    if (v === null || v === undefined || v === "") return "";
+    // aceita número e string
+    const n = Number(String(v).replace(",", "."));
+    if (Number.isNaN(n)) return esc(String(v));
+    return n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 6 });
+  }
+
+  async function copiarTabela() {
+    const table = document.querySelector("#resultado table");
+    if (!table) {
+      alert("Nenhuma tabela para copiar.");
+      return;
+    }
+
+    const rows = Array.from(table.querySelectorAll("tr"));
+    const tsv = rows.map(row => {
+      const cells = Array.from(row.querySelectorAll("th,td"));
+      return cells.map(c => (c.innerText || "").replace(/\t/g, " ").replace(/\n/g, " ")).join("\t");
+    }).join("\n");
+
+    // tenta clipboard moderno
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(tsv);
+        alert("Tabela copiada! Agora é só colar no Excel.");
+        return;
+      }
+    } catch (e) {
+      // cai pro fallback abaixo
+    }
+
+    // fallback (funciona até sem https): cria textarea temporário
+    const ta = document.createElement("textarea");
+    ta.value = tsv;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+
+    alert("Tabela copiada! Agora é só colar no Excel.");
+  }
+
+  function esc(s) {
+    if (s == null) return "";
+    return String(s).replace(/[&<>"']/g, m => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+    }[m]));
+  }
+</script>
+</body>
+</html>
