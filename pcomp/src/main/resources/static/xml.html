@@ -168,7 +168,7 @@
   <div class="topbar">
     <div class="title">
       <h2>Extrator XML (NF-e)</h2>
-      <div class="subtitle">Envie até 10 XMLs • saída em tabela (1 linha por item)</div>
+      <div class="subtitle">Envie até 100 XMLs • saída em tabela (1 linha por item)</div>
     </div>
     <a href="/">Voltar para Conferência</a>
   </div>
@@ -180,7 +180,6 @@
 
       <div class="row">
         <button class="btn primary" type="button" onclick="enviar()">Extrair</button>
-        <!-- o botão copiar aparece no resultado também, mas pode deixar aqui também -->
         <button class="btn copy" type="button" onclick="copiarTabela()">Copiar tabela</button>
       </div>
 
@@ -213,8 +212,8 @@
       alert("Selecione pelo menos 1 XML.");
       return;
     }
-    if (input.files.length > 20) {
-      alert("Máximo de 20 arquivos.");
+    if (input.files.length > 100) {
+      alert("Máximo de 100 arquivos.");
       return;
     }
 
