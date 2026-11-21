@@ -265,8 +265,6 @@
     <th>Natureza da Operação</th>\
     <th>Emissão</th>\
     <th>Fornecedor</th>\
-    <th>Arquivo</th>\
-    <th>Observações NF</th>\
     <th>NF Referenciada</th>\
     </tr>";
 
@@ -277,19 +275,15 @@
       html += "<td>" + esc(l.skuFornecedor) + "</td>";
       html += "<td class='mono'>" + esc(l.ean) + "</td>";
       html += "<td>" + esc(l.descricao) + "</td>";
-
       html += "<td class='right mono'>" + formatBRNumber(l.quantidade) + "</td>";
       html += "<td class='right mono'>" + formatBRNumber(l.valorUnitario) + "</td>";
       html += "<td class='right mono'>" + formatBRNumber(l.valorTotal) + "</td>";
       html += "<td class='right mono'>" + formatBRNumber(l.ipiUnitario) + "</td>";
       html += "<td class='mono'>" + esc(l.cfop) + "</td>";
       html += "<td>" + esc(l.naturezaOperacao) + "</td>";
-
       html += "<td>" + esc(l.dataEmissao) + "</td>";
       html += "<td>" + esc(l.fornecedorNome) + "</td>";
-      html += "<td>" + esc(l.arquivo) + "</td>";
-      html += "<td>" + esc(l.observacoes) + "</td>";
-      html += "<td class='mono'>" + esc(l.refNFe ? l.refNFe.substring(25, 34) : "") + "</td>";      
+      html += "<td class='mono'>" + esc(l.refNFe ? l.refNFe.substring(25, 34) : "") + "</td>";
       html += "</tr>";
     });
 
