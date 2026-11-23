@@ -265,14 +265,16 @@
     <th>Observações NF</th>\
     </tr>";
 
+    let sequenciaNF = 0
     const nfsExibidas = new Set();
         
     data.linhas.forEach(l => {
       if (nfsExibidas.has(l.numeroNf)) return;
       nfsExibidas.add(l.numeroNf);
+      sequenciaNF++;
       
       html += "<tr>";
-      html += "<td class='mono'>" + l.sequencia + "</td>";
+      html += "<td class='mono'>" + sequenciaNF + "</td>";
       html += "<td class='mono'>" + esc(l.numeroNf) + "</td>";
       html += "<td class='mono'>" + formatBRNumber(l.valorTotalNf) + "</td>";
       html += "<td class='mono'>" + esc(l.refNFe ? l.refNFe.substring(25, 34) : "") + "</td>";
