@@ -266,17 +266,19 @@
     </tr>";
 
     
-    html += "<tr>";
-    html += "<td class='mono'>" + l.sequencia + "</td>";
-    html += "<td class='mono'>" + esc(l.numeroNf) + "</td>";
-    html += "<td class='mono'>" + formatBRNumber(l.valorTotalNf) + "</td>";
-    html += "<td class='mono'>" + esc(l.refNFe ? l.refNFe.substring(25, 34) : "") + "</td>";
-    html += "<td class='mono'>" + esc(l.cfop) + "</td>";
-    html += "<td>" + esc(l.naturezaOperacao) + "</td>";
-    html += "<td>" + esc(l.dataEmissao) + "</td>";
-    html += "<td>" + esc(l.fornecedorNome) + "</td>";
-    html += "<td>" + esc(l.observacoes) + "</td>";
-    html += "</tr>";
+    data.linhas.slice(0,1).forEach(l => {
+      html += "<tr>";
+      html += "<td class='mono'>" + l.sequencia + "</td>";
+      html += "<td class='mono'>" + esc(l.numeroNf) + "</td>";
+      html += "<td class='mono'>" + formatBRNumber(l.valorTotalNf) + "</td>";
+      html += "<td class='mono'>" + esc(l.refNFe ? l.refNFe.substring(25, 34) : "") + "</td>";
+      html += "<td class='mono'>" + esc(l.cfop) + "</td>";
+      html += "<td>" + esc(l.naturezaOperacao) + "</td>";
+      html += "<td>" + esc(l.dataEmissao) + "</td>";
+      html += "<td>" + esc(l.fornecedorNome) + "</td>";
+      html += "<td>" + esc(l.observacoes) + "</td>";
+      html += "</tr>";
+    });
     
 
     html += "</table>";
