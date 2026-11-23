@@ -243,7 +243,8 @@
 
   function render(data) {
     let html = "";
-    html += `<p><b>Arquivos:</b> ${data.arquivosRecebidos} | <b>Linhas:</b> ${data.linhasGeradas}</p>`;
+    const nfsUnicas = (new Set(data.linhas.map(l=>l.numeroNf))):
+    html += `<p><b>Arquivos:</b> ${data.arquivosRecebidos} | <b>Linhas:</b> ${data.nfsUnicas.size}</p>`;
     // html += `<button type="button" onclick="copiarTabela()">Copiar tabela</button>`;
 
     if (!data.linhas || data.linhas.length === 0) {
