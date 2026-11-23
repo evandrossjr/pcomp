@@ -265,8 +265,12 @@
     <th>Observações NF</th>\
     </tr>";
 
-    
-    data.linhas.slice(0,1).forEach(l => {
+    const nfsExibidas = new Set();
+        
+    data.linhas.forEach(l => {
+      if (nfsExibidas.has(l.numeroNf)) return;
+      nfsExibidas.add(l.numeroNf);
+      
       html += "<tr>";
       html += "<td class='mono'>" + l.sequencia + "</td>";
       html += "<td class='mono'>" + esc(l.numeroNf) + "</td>";
